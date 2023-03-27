@@ -111,7 +111,7 @@ public class BluetoothLeService extends Service {
         }
 
         /**
-         * 发现服务特征，建立通信
+         * 发现服务和特征，建立通信
          */
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
@@ -128,7 +128,7 @@ public class BluetoothLeService extends Service {
         }
 
         /**
-         * 读操作回调
+         * 读特征回调
          */
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
@@ -142,7 +142,7 @@ public class BluetoothLeService extends Service {
         }
 
         /**
-         * 写操作回调
+         * 写特征回调
          */
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
@@ -157,7 +157,7 @@ public class BluetoothLeService extends Service {
         }
 
         /**
-         * 从设备接收数据
+         * 监听特征变化，从设备接收数据
          */
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
@@ -201,7 +201,7 @@ public class BluetoothLeService extends Service {
     }
 
     /**
-     * 读数据
+     * 读取BEL设备的特征值
      */
     public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
         if (mBluetoothGatt != null && characteristic != null) {
@@ -210,7 +210,7 @@ public class BluetoothLeService extends Service {
     }
 
     /**
-     * 写数据
+     * 向BLE设备写入特征值
      */
     public void writeCharacteristic(BluetoothGattCharacteristic characteristic, byte[] data) {
         if (mBluetoothGatt != null && characteristic != null) {
@@ -220,7 +220,7 @@ public class BluetoothLeService extends Service {
     }
 
     /**
-     * 订阅通知
+     * 订阅通知，监听 BLE 设备特征值变化
      */
     public void setCharacteristicNotification(BluetoothGattCharacteristic characteristic, boolean enabled) {
         if (mBluetoothGatt == null) {
