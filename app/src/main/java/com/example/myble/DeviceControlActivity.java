@@ -28,6 +28,7 @@ public class DeviceControlActivity extends AppCompatActivity {
     private boolean connected;
     private String deviceAddress; //BLE地址
     private BluetoothLeService mBluetoothLeService;
+
     private TextView tv_bluetooth_state;
     private TextView tv_connect_state;
     private Button btn_disconnect;
@@ -35,6 +36,8 @@ public class DeviceControlActivity extends AppCompatActivity {
     private TextView tv_uuids;
     private Button btn_request;
     private Button btn_read;
+    private TextView tv_receiver;
+    private TextView tv_request;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +61,8 @@ public class DeviceControlActivity extends AppCompatActivity {
         tv_uuids = findViewById(R.id.tv_uuids);
         btn_request = findViewById(R.id.btn_request);
         btn_read = findViewById(R.id.btn_read);
+        tv_request = findViewById(R.id.tv_request);
+        tv_receiver = findViewById(R.id.tv_receiver);
 
         btn_connect.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -138,6 +143,12 @@ public class DeviceControlActivity extends AppCompatActivity {
                 tv_connect_state.setText("连接断开");
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 displayGattServices(mBluetoothLeService.getGattServices());
+            } else if (BluetoothLeService.ACTION_GATT_SERVICES_WRITE.equals(action)) {
+                String message = intent.getStringExtra("message");
+                tv_request.setText(message);
+            } else if (BluetoothLeService.ACTION_GATT_SERVICES_CHANGED.equals(action)) {
+                String message = intent.getStringExtra("message");
+                tv_receiver.setText(message);
             }
         }
     };
@@ -150,6 +161,8 @@ public class DeviceControlActivity extends AppCompatActivity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_WRITE);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_CHANGED);
         return intentFilter;
     }
 

@@ -27,6 +27,10 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
     public final static String ACTION_GATT_SERVICES_DISCOVERED =
             "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
+    public final static String ACTION_GATT_SERVICES_WRITE =
+            "com.example.bluetooth.le.ACTION_GATT_SERVICES_WRITE";
+    public final static String ACTION_GATT_SERVICES_CHANGED =
+            "com.example.bluetooth.le.ACTION_GATT_SERVICES_CHANGED";
 
     // 服务UUID
     private static final String SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
@@ -157,6 +161,7 @@ public class BluetoothLeService extends Service {
             Log.e("TAG", "获取写指令：" + BytesUtils.bytesToHexString(characteristic.getValue()));
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.e("TAG", "写入成功");
+                broadcastUpdate(ACTION_GATT_SERVICES_WRITE, BytesUtils.bytesToHexString(characteristic.getValue()));
             } else {
                 Log.e("TAG", "写入失败");
             }
@@ -170,6 +175,7 @@ public class BluetoothLeService extends Service {
             super.onCharacteristicChanged(gatt, characteristic);
             Log.e("TAG", "onCharacteristicChanged");
             Log.e("TAG", "从设备接收数据：" + BytesUtils.bytesToHexString(characteristic.getValue()));
+            broadcastUpdate(ACTION_GATT_SERVICES_CHANGED, BytesUtils.bytesToHexString(characteristic.getValue()));
         }
     };
 
@@ -203,6 +209,12 @@ public class BluetoothLeService extends Service {
      */
     private void broadcastUpdate(final String action) {
         final Intent intent = new Intent(action);
+        sendBroadcast(intent);
+    }
+
+    private void broadcastUpdate(final String action, String message) {
+        final Intent intent = new Intent(action);
+        intent.putExtra("message", message);
         sendBroadcast(intent);
     }
 
