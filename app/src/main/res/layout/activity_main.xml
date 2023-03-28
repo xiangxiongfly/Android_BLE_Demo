@@ -17,14 +17,14 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="clickCheck"
-            android:text="是否支持BLE" />
+            android:text="检查是否支持BLE" />
 
         <Button
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:onClick="clickCheckEnabled"
-            android:text="蓝牙是否开启" />
+            android:text="检查是否开启蓝牙" />
     </LinearLayout>
 
     <LinearLayout

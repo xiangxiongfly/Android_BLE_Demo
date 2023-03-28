@@ -157,6 +157,7 @@ public class MainActivity extends AppCompatActivity {
         if (isScanning) {
             Log.e("TAG", "停止扫描");
             isScanning = false;
+            handler.removeCallbacksAndMessages(null);
             BluetoothLeScanner bluetoothLeScanner = getBluetoothAdapter().getBluetoothLeScanner();
             bluetoothLeScanner.stopScan(leScanCallback);
         }

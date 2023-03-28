@@ -74,6 +74,9 @@ public class BluetoothLeService extends Service {
      * 断开连接
      */
     public void disconnect() {
+        if (mBluetoothGatt == null) {
+            return;
+        }
         mBluetoothGatt.disconnect();
     }
 
@@ -96,14 +99,17 @@ public class BluetoothLeService extends Service {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
+            Log.e("TAG", "onConnectionStateChange");
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 // 成功连接Gatt服务
+                Log.e("TAG", "成功连接Gatt服务");
                 connectionState = STATE_CONNECTED;
                 broadcastUpdate(ACTION_GATT_CONNECTED);
                 // 现BLE提供的服务
                 mBluetoothGatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                // 与GATT服务器断开连接
+                // 与GATT服务断开连接
+                Log.e("TAG", "与GATT服务断开连接");
                 connectionState = STATE_DISCONNECTED;
                 broadcastUpdate(ACTION_GATT_DISCONNECTED);
                 mBluetoothGatt = null;
@@ -184,7 +190,7 @@ public class BluetoothLeService extends Service {
     /**
      * 关闭Gatt连接
      */
-    private void close() {
+    public void close() {
         if (mBluetoothGatt == null) {
             return;
         }
