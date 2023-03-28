@@ -105,7 +105,7 @@ public class BluetoothLeService extends Service {
                 Log.e("TAG", "成功连接Gatt服务");
                 connectionState = STATE_CONNECTED;
                 broadcastUpdate(ACTION_GATT_CONNECTED);
-                // 现BLE提供的服务
+                // 发现BLE提供的服务
                 mBluetoothGatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 // 与GATT服务断开连接
@@ -117,7 +117,7 @@ public class BluetoothLeService extends Service {
         }
 
         /**
-         * 发现服务和特征，建立通信
+         * 发现服务和特征，并订阅通知
          */
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
