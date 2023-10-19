@@ -14,11 +14,11 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
-import java.util.ArrayList;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import java.util.List;
 import java.util.UUID;
-
-import androidx.annotation.Nullable;
 
 public class BluetoothLeService extends Service {
     public final static String ACTION_GATT_CONNECTED =
@@ -32,19 +32,28 @@ public class BluetoothLeService extends Service {
     public final static String ACTION_GATT_SERVICES_CHANGED =
             "com.example.bluetooth.le.ACTION_GATT_SERVICES_CHANGED";
 
-    // 服务UUID
-    private static final String SERVICE_UUID = "0000ffe0-0000-1000-8000-00805f9b34fb";
-    // 特征UUID
-    private static final String CHARACTERISTIC_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb";
+    // 体温 服务UUID
+    private static final String SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+    // 体温 特征UUID
+    private static final String CHARACTERISTIC_UUID = "0000fff1-0000-1000-8000-00805f9b34fb";
 
-    private static final int STATE_DISCONNECTED = 0;
-    private static final int STATE_CONNECTED = 2;
+    public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
+
+    private static final int STATE_DISCONNECTED = 0; //蓝牙断开状态
+    private static final int STATE_CONNECTED = 2; //蓝牙连接状态
+    private int connectionState; //连接状态
 
     private BluetoothGatt mBluetoothGatt;
     private BluetoothGattCharacteristic characteristic;
-    private int connectionState; //连接状态
 
     private Binder binder = new LocalBinder();
+    private int deviceType;
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        deviceType = intent.getIntExtra("deviceType", -1);
+        return super.onStartCommand(intent, flags, startId);
+    }
 
     @Nullable
     @Override
@@ -91,6 +100,9 @@ public class BluetoothLeService extends Service {
         writeCharacteristic(characteristic, BytesUtils.hexStringToBytes("938e0400080410"));
     }
 
+    /**
+     * 读取数据
+     */
     public void read() {
         readCharacteristic(characteristic);
     }
@@ -138,21 +150,21 @@ public class BluetoothLeService extends Service {
         }
 
         /**
-         * 读特征回调
+         * 发送读指令监听
          */
         @Override
-        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            super.onCharacteristicRead(gatt, characteristic, status);
+        public void onCharacteristicRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value, int status) {
+            super.onCharacteristicRead(gatt, characteristic, value, status);
             Log.e("TAG", "onCharacteristicRead");
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                byte[] data = characteristic.getValue();
+                byte[] data = value;
                 // 处理读取到的数据
                 Log.e("TAG", "获取特征数据：" + BytesUtils.bytesToHexString(data));
             }
         }
 
         /**
-         * 写特征回调
+         * 发送写指令监听
          */
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
@@ -168,14 +180,30 @@ public class BluetoothLeService extends Service {
         }
 
         /**
-         * 监听特征变化，从设备接收数据
+         * 数据变化监听
+         * 获取从BLE设备的数据
          */
         @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicChanged(gatt, characteristic);
+        public void onCharacteristicChanged(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value) {
+            super.onCharacteristicChanged(gatt, characteristic, value);
             Log.e("TAG", "onCharacteristicChanged");
-            Log.e("TAG", "从设备接收数据：" + BytesUtils.bytesToHexString(characteristic.getValue()));
-            broadcastUpdate(ACTION_GATT_SERVICES_CHANGED, BytesUtils.bytesToHexString(characteristic.getValue()));
+            Log.e("TAG", "从设备接收数据：" + BytesUtils.bytesToHexString(value));
+            broadcastUpdate(ACTION_GATT_SERVICES_CHANGED, BytesUtils.bytesToHexString(value));
+        }
+
+        /**
+         * 订阅成功监听
+         */
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            super.onDescriptorWrite(gatt, descriptor, status);
+            Log.e("TAG", "onDescriptorWrite");
+        }
+
+        @Override
+        public void onDescriptorRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattDescriptor descriptor, int status, @NonNull byte[] value) {
+            super.onDescriptorRead(gatt, descriptor, status, value);
+            Log.e("TAG", "onDescriptorRead");
         }
     };
 
@@ -245,7 +273,7 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CHARACTERISTIC_UUID));
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG));
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         mBluetoothGatt.writeDescriptor(descriptor);
     }

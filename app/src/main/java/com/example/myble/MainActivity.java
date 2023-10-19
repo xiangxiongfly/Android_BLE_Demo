@@ -1,8 +1,5 @@
 package com.example.myble;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -14,63 +11,67 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.myble.databinding.ActivityMainBinding;
 import com.hjq.permissions.OnPermissionCallback;
 import com.hjq.permissions.Permission;
 import com.hjq.permissions.XXPermissions;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private TextView tv_device;
+    private static final int BLE_TYPE_TW = 0x11;
+    private static final int BLE_TYPE_NJ = 0x12;
 
     public static final int REQUEST_ENABLE_BT = 0x1;
-
-    private boolean isScanning = false;
-    private Handler handler = new Handler();
     private static final long SCAN_PERIOD = 30_000; //扫描时间
 
-    private BluetoothDevice mDevice;
+    private boolean isScanning = false;
+    private final Handler handler = new Handler();
 
+    private ActivityMainBinding viewBinding;
+    private static int deviceType;
+    private static String deviceAddress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        initView();
+        viewBinding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(viewBinding.getRoot());
         initPermissions();
     }
 
-    private void initView() {
-        tv_device = findViewById(R.id.tv_device);
-        Button btn_search = findViewById(R.id.btn_search);
-        Button btn_stop_search = findViewById(R.id.btn_stop_search);
-
-        btn_search.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.btn_support:
+                supporBLE();
+                break;
+            case R.id.btn_enable:
+                checkEnabled();
+                break;
+            case R.id.btn_open_ble1:
+                openBLE1();
+                break;
+            case R.id.btn_open_ble2:
+                openBLE2();
+                break;
+            case R.id.btn_start_scan:
                 startScan();
-            }
-        });
-        btn_stop_search.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+                break;
+            case R.id.btn_stop_scan:
                 stopScan();
-            }
-        });
+                break;
+        }
     }
 
-    private BluetoothAdapter getBluetoothAdapter() {
-//        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-//        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
-//        return bluetoothAdapter;
-        // 等价于如下
-        return BluetoothAdapter.getDefaultAdapter();
-    }
-
+    /**
+     * 申请权限
+     */
     private void initPermissions() {
         //BLUETOOTH_ADVERTISE、BLUETOOTH_CONNECT、BLUETOOTH_SCAN、ACCESS_FINE_LOCATION权限是运行时权限
         XXPermissions.with(this)
@@ -86,56 +87,75 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    public void clickCheck(View view) {
-        checkBLE();
-    }
-
-    public void clickCheckEnabled(View view) {
-        checkEnabled();
-    }
-
     public void clickConnect(View view) {
         startDeviceActivity();
     }
 
-    // 检查设备是否支持蓝牙
-    private void checkBLE() {
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+    /**
+     * 检查设备是否支持蓝牙
+     */
+    private boolean supporBLE() {
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE) || getBluetoothAdapter() == null) {
             Toast.makeText(this, "当前设备不支持蓝牙", Toast.LENGTH_SHORT).show();
+            return false;
         } else {
             Toast.makeText(this, "当前设备支持蓝牙", Toast.LENGTH_SHORT).show();
-        }
-        if (getBluetoothAdapter() == null) {
-            Toast.makeText(this, "当前设备不支持蓝牙", Toast.LENGTH_SHORT).show();
+            return true;
         }
     }
 
-    // 蓝牙是否开启
+    /**
+     * 获取蓝牙适配器
+     */
+    private BluetoothAdapter getBluetoothAdapter() {
+//        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+//        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+//        return bluetoothAdapter;
+
+        // 上面代码等价于如下
+        return BluetoothAdapter.getDefaultAdapter();
+    }
+
+    /**
+     * 检查蓝牙是否开启
+     */
     private boolean checkEnabled() {
         boolean isEnabled = getBluetoothAdapter().isEnabled();
-        Toast.makeText(this, isEnabled ? "蓝牙开启" : "蓝牙未开启", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, isEnabled ? "已开启" : "未开启", Toast.LENGTH_SHORT).show();
         return isEnabled;
     }
 
-    // 开启蓝牙
-    public void clickOepn(View view) {
-        if (!checkEnabled()) {
-            BluetoothAdapter bluetoothAdapter = getBluetoothAdapter();
-            // 直接开启蓝牙
-            bluetoothAdapter.enable();
+    /**
+     * 打开蓝牙，方式一
+     */
+    private void openBLE1() {
+        BluetoothAdapter bluetoothAdapter = getBluetoothAdapter();
+        // 直接开启蓝牙，Android13不支持了
+        boolean enable = bluetoothAdapter.enable();
+        if (enable) {
+            Toast.makeText(this, "开启蓝牙了", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // 开启蓝牙2
-    public void clickOpen2(View view) {
-        if (!checkEnabled()) {
-            // 优雅开启蓝牙
-            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(intent, REQUEST_ENABLE_BT);
+    /**
+     * 打开蓝牙，方式二
+     */
+    private void openBLE2() {
+        Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+        startActivityForResult(intent, REQUEST_ENABLE_BT);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_ENABLE_BT && resultCode == RESULT_OK) {
+            Toast.makeText(this, "开启蓝牙了", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // 搜索周围BLE设备
+    /**
+     * 开始扫描蓝牙设备
+     */
     private void startScan() {
         if (!isScanning) {
             Log.e("TAG", "开始扫描");
@@ -152,7 +172,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // 停止搜索
+    /**
+     * 停止扫描蓝牙设备
+     */
     public void stopScan() {
         if (isScanning) {
             Log.e("TAG", "停止扫描");
@@ -163,39 +185,57 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // 搜索回调
-    private final ScanCallback leScanCallback =
-            new ScanCallback() {
-                @Override
-                public void onScanResult(int callbackType, ScanResult result) {
-                    super.onScanResult(callbackType, result);
-                    BluetoothDevice device = result.getDevice();
-                    if (device != null) {
-                        StringBuilder builder = new StringBuilder();
-                        builder.append("设备名：" + device.getName()).append("\n");
-                        builder.append("地址：" + device.getAddress()).append("\n");
-                        builder.append("uuids：" + device.getUuids());
-                        String deviceStr = builder.toString();
-                        Log.e("TAG", "BLE : " + deviceStr);
-                        if (filterDevice(device)) {
-                            Log.e("TAG", "找到指定设备，停止扫描");
-                            stopScan();
-                            mDevice = device;
-                            tv_device.setText(deviceStr);
-                        }
-                    }
+    /**
+     * 扫描结果回调
+     */
+    private final ScanCallback leScanCallback = new ScanCallback() {
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            super.onScanResult(callbackType, result);
+            BluetoothDevice device = result.getDevice();
+            if (device != null) {
+                String deviceInfoStr = "\n" +
+                        "设备名：" + device.getName() + "\n" +
+                        "地址：" + device.getAddress() + "\n" +
+                        "uuids：" + Arrays.toString(device.getUuids());
+                Log.e("TAG", "BLE : " + deviceInfoStr);
+                if (filterDevice(device.getName())) {
+                    Log.e("TAG", "找到指定设备，停止扫描");
+                    stopScan();
+                    deviceType = getDeviceType(device.getName());
+                    deviceAddress = device.getAddress();
+                    viewBinding.tvDevice.setText(deviceInfoStr);
                 }
-            };
+            }
+        }
+    };
 
     private void startDeviceActivity() {
-        if (mDevice != null) {
-            startActivity(new Intent(this, DeviceControlActivity.class).putExtra("address", mDevice.getAddress()));
+        if (deviceType != -1) {
+            DeviceControlActivity.actionStart(this, deviceAddress, deviceType);
         }
     }
 
-    // 过滤设备
-    private boolean filterDevice(BluetoothDevice device) {
-        return "BLE-EMP-Ui".equals(device.getName());
+    /**
+     * 过滤指定设备
+     */
+    private boolean filterDevice(String deviceName) {
+        return "BLE-EMP-Ui".equals(deviceName) || "Bluetooth BP".equals(deviceName);
+    }
+
+    /**
+     * 获取设备类型
+     */
+    private int getDeviceType(String deviceName) {
+        if ("BLE-EMP-Ui".equals(deviceName)) {
+            viewBinding.tvTitle.setText("尿检仪");
+            return BLE_TYPE_NJ;
+        } else if ("Bluetooth BP".equals(deviceName)) {
+            viewBinding.tvTitle.setText("体温枪");
+            return BLE_TYPE_TW;
+        } else {
+            return -1;
+        }
     }
 
 }
